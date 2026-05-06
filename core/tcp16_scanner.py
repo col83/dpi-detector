@@ -130,16 +130,15 @@ async def _fat_probe_keepalive(
 
     return alive_str, "[green]OK[/green]", "", measured_rtt
 
+_SHARED_VERIFY_CTX = ssl.create_default_context()
+_SHARED_VERIFY_CTX.check_hostname = False
+_SHARED_VERIFY_CTX.verify_mode = ssl.CERT_NONE
 
 async def check_tcp_16_20(
     ip: str, port: int, sni: Optional[str], semaphore: asyncio.Semaphore,
     hint_rtt: Optional[float] = None,
 ) -> Tuple[str, str, str, Optional[float]]:
     async with semaphore:
-        verify_ctx = ssl.create_default_context()
-        verify_ctx.check_hostname = False
-        verify_ctx.verify_mode = ssl.CERT_NONE
-
         # max_keepalive_connections=1 гарантирует, что httpx будет пытаться
         # переиспользовать один и тот же сокет для всех запросов к одному IP
         limits = httpx.Limits(max_keepalive_connections=1, max_connections=1)
@@ -147,7 +146,7 @@ async def check_tcp_16_20(
         proxy_url = getattr(config, "PROXY_URL", None)
 
         async with httpx.AsyncClient(
-            verify=verify_ctx,
+            verify=_SHARED_VERIFY_CTX,
             http2=False,
             limits=limits,
             proxy=proxy_url,
@@ -165,9 +164,6 @@ async def check_tcp_16_20_with_rtt(
     Используется в тесте 4 чтобы передать hint_rtt при перебое SNI.
     """
     async with semaphore:
-        verify_ctx = ssl.create_default_context()
-        verify_ctx.check_hostname = False
-        verify_ctx.verify_mode = ssl.CERT_NONE
 
         limits = httpx.Limits(max_keepalive_connections=1, max_connections=1)
 
@@ -177,7 +173,7 @@ async def check_tcp_16_20_with_rtt(
         proxy_url = getattr(config, "PROXY_URL", None)
 
         async with httpx.AsyncClient(
-            verify=verify_ctx,
+            verify=_SHARED_VERIFY_CTX,
             http2=False,
             limits=limits,
             proxy=proxy_url,

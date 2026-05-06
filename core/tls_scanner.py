@@ -251,16 +251,17 @@ async def check_http_injection(
 
     try:
         req = client.build_request(
-            "GET",
+            "HEAD",
             f"http://{clean_domain}",
             headers={
                 "User-Agent": config.USER_AGENT,
-                "Accept-Encoding": "identity",
+                "Host": clean_domain,
+                "Accept": "*/*",
                 "Connection": "close",
             },
             extensions={"trace": trace_hook}
         )
-        response = await client.send(req, stream=True)
+        response = await client.send(req)
         status_code = response.status_code
         location = response.headers.get("location", "")
 
